@@ -1,17 +1,34 @@
-C Networking Work Sample – ARP Test Utility
-Author: Thai Nguyen
+# C Networking Work Sample – ARP Test Utility
 
-Purpose:
-This work sample demonstrates systems-level networking knowledge using the C programming language on Linux. The utility resolves MAC addresses for a given IPv4 address by interacting directly with Ethernet and ARP protocols. It queries the operating system ARP cache and, when necessary, constructs and transmits ARP request frames using raw sockets.
+**Author:** Thai Nguyen  
+**Language:** C  
+**Platform:** Linux
 
-What This Demonstrates:
-•	Layer 2 and Layer 3 interactions (Ethernet, ARP, IPv4)
-•	Raw socket programming using PF_PACKET on Linux
-•	Manual construction and parsing of Ethernet and ARP protocol headers
-•	Network interface discovery, validation, and binding via IOCtl
-•	Interaction with OS-level networking state (ARP cache query and insertion)
-•	Network-operations awareness relevant to distributed and mission-critical systems
+## Purpose
+This repository contains a Linux-based C networking utility that resolves MAC addresses for a given IPv4 address.
+The program first queries the operating system ARP cache and, if no entry is present,
+constructs and transmits an ARP request using raw Ethernet frames.
 
-Context:
-This sample is provided as a technical demonstration artifact and is not production code.
-Diagnostic output is intentionally included to make protocol behavior, packet structure, and state transitions explicit for review.
+The goal of this sample is to demonstrate systems-level networking fundamentals and
+network-operations awareness rather than provide production-ready code.
+
+## What This Demonstrates
+- Understanding of Layer 2 and Layer 3 interactions (Ethernet, ARP, IPv4)
+- Raw socket programming on Linux using `PF_PACKET`
+- Manual construction and parsing of Ethernet and ARP protocol headers
+- Network interface discovery, validation, and binding via `ioctl`
+- Interaction with OS-level networking state (ARP cache query and insertion)
+- Practical networking knowledge relevant to distributed and mission-critical systems
+
+## Context
+This code is provided as a technical demonstration artifact.
+Diagnostic output is intentionally included to make protocol behavior, packet structure,
+and state transitions explicit and easy to follow during review.
+
+The code requires elevated privileges (`root` or appropriate capabilities) due to raw socket usage.
+
+## Relevance to Network-Aware Systems
+The concepts demonstrated here support building reliable services and APIs
+that operate predictably across complex, heterogeneous, and potentially high-latency networks.
+This foundational understanding is directly applicable when designing interfaces that
+must integrate cleanly with underlying network and infrastructure layers.
