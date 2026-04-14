@@ -1,0 +1,17 @@
+C Networking Work Sample – ARP Test Utility
+Author: Thai Nguyen
+
+Purpose:
+This work sample demonstrates systems-level networking knowledge using the C programming language on Linux. The utility resolves MAC addresses for a given IPv4 address by interacting directly with Ethernet and ARP protocols. It queries the operating system ARP cache and, when necessary, constructs and transmits ARP request frames using raw sockets.
+
+What This Demonstrates:
+•	Layer 2 and Layer 3 interactions (Ethernet, ARP, IPv4)
+•	Raw socket programming using PF_PACKET on Linux
+•	Manual construction and parsing of Ethernet and ARP protocol headers
+•	Network interface discovery, validation, and binding via IOCtl
+•	Interaction with OS-level networking state (ARP cache query and insertion)
+•	Network-operations awareness relevant to distributed and mission-critical systems
+
+Context:
+This sample is provided as a technical demonstration artifact and is not production code.
+Diagnostic output is intentionally included to make protocol behavior, packet structure, and state transitions explicit for review.
