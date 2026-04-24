@@ -152,18 +152,18 @@ int main(int argc, char **argv)
     unsigned char *dest_ip;
     struct in_addr ip_in;
     ifc.ifc_buf = NULL;
-    int ret = 0;
+    int ret = -1; /* Assume failure until success is achieved. */
 
     /* Processing command line arguments: argv[1] is target's IP address. */
     if (argc < 2)
     {
         printf("Usage: <program name> <ARP target's IP address (in dotted notation)>\n");
-        return 1;
+        return -1;
     }
     if (inet_aton(argv[1], &ip_in) == 0)
     { /* Check for a valid IP address and convert it into binary data. */
         printf("Error: invalid target's IP address...\n");
-        return 1;
+        return -1;
     }
     dest_ip = (unsigned char *)&ip_in;
 
@@ -177,7 +177,7 @@ int main(int argc, char **argv)
     if (fd_arp == -1)
     {
         printf("Error: Could not open Raw socket...\n");
-        return 1;
+        return -1;
     }
 
     /* Allocate buffer for SIOCGIFCONF ioctl.
@@ -188,7 +188,7 @@ int main(int argc, char **argv)
 
     /* Call SIOCGIFCONF ioctl */
     if (ioctl(fd_arp, SIOCGIFCONF, &ifc) == -1)
-        return 1;
+        return -1;
 
     array_size = ifc.ifc_len / sizeof(struct ifreq);
 
@@ -204,7 +204,7 @@ int main(int argc, char **argv)
         memcpy(src_intfaddr.ip_addr, ifr.ifr_addr.sa_data + 2, IP_ADDR_LEN); /* Get IP address of this interface. */
 
         if (ioctl(fd_arp, SIOCGIFFLAGS, &ifr) == -1)
-            return 1; /* Get device interface flags. */
+            return -1; /* Get device interface flags. */
         if (ifr.ifr_flags & IFF_LOOPBACK)
             continue; /* Ignore loopback interface. */
         if (!(ifr.ifr_flags & (IFF_RUNNING | IFF_UP | IFF_DYNAMIC)))
@@ -217,7 +217,7 @@ int main(int argc, char **argv)
             continue;
 
         if (ioctl(fd_arp, SIOCGIFHWADDR, &ifr) == -1)
-            return 1; /* Get hardware information of this interface. */
+            return -1; /* Get hardware information of this interface. */
 
         memcpy(src_intfaddr.mac_addr, ifr.ifr_addr.sa_data, MAC_ADDR_LEN);   /* Get MAC address of this interface. */
         memcpy(src_intfaddr.intfc_name, ifr.ifr_name, sizeof(ifr.ifr_name)); /* Get interface's name, e.g, wlan0, eth0... */
@@ -271,7 +271,8 @@ int main(int argc, char **argv)
             printf("%0x ", (unsigned char)arpr.arp_ha.sa_data[index]);
         printf("\n");
 
-        return 0; /* return success */
+        ret = 0; /* return success */
+        goto cleanup;
     }
 
     ether_header = (etherHeader *)send_buf;
@@ -292,6 +293,7 @@ int main(int argc, char **argv)
 
     memset(recv_buf, 0, sizeof(recv_buf));
 
+
     retval = sendto(fd_arp, send_buf, sizeof(send_buf), 0, NULL, 0);
 
     if (retval == -1)
@@ -300,7 +302,15 @@ int main(int argc, char **argv)
         printf("value of errno is: %d\n", errno);
         error_msg = strerror(errno);
         printf("Error desc is: %s\n", error_msg);
-        ret = 1;
+        goto cleanup;
+    }
+
+    // Set a 3-second timeout for recvfrom
+    struct timeval tv;
+    tv.tv_sec = 3;
+    tv.tv_usec = 0;
+    if (setsockopt(fd_arp, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv) < 0) {
+        perror("Error setting socket timeout\n");
         goto cleanup;
     }
 
@@ -308,8 +318,14 @@ int main(int argc, char **argv)
 
     if (retval == -1)
     {
-        printf("recvfrom fails, returns now...\n");
-        ret = 1;
+        if (errno == EWOULDBLOCK || errno == EAGAIN) {
+            printf("recvfrom timed out after 3 seconds, no ARP reply received.\n");
+        } else {
+            printf("recvfrom fails, returns now...\n");
+        }
+        printf("value of errno is: %d\n", errno);
+        error_msg = strerror(errno);
+        printf("Error desc is: %s\n", error_msg);
         goto cleanup;
     }
 
@@ -322,14 +338,14 @@ int main(int argc, char **argv)
 
     memset(&arpr, 0, sizeof(arpr));
     memcpy(arpr.arp_pa.sa_data + 2, dest_ip, IP_ADDR_LEN);              /* Copy ip address. */
-    memcpy(arpr.arp_ha.sa_data, recv_buf + MAC_ADDR_LEN, MAC_ADDR_LEN); /* Copy mac address. */
+    arpHeader *arp_hdr = (arpHeader *)(recv_buf + sizeof(etherHeader));
+    memcpy(arpr.arp_ha.sa_data, arp_hdr->sha, MAC_ADDR_LEN); /* Copy mac address. */
     arpr.arp_pa.sa_family = AF_INET;
     arpr.arp_flags = ATF_PUBL;                                                      /* ATF_PUBL Flag is used to insert the entry into the ARP table. */
     memcpy(arpr.arp_dev, src_intfaddr.intfc_name, sizeof(src_intfaddr.intfc_name)); /* Copy interface name. */
 
-    if (ioctl(fd, SIOCSARP, &arpr) == -1)
+    if (ioctl(fd, SIOCSARP, &arpr) == -1) /* Add to MAC table */
     {
-        ret = 1; /* Add to MAC table */
         goto cleanup;
     }
 
@@ -345,6 +361,8 @@ int main(int argc, char **argv)
 
     printf("\n\n");
 
+    ret = 0; /* return success */
+    
 cleanup:
     if (ifc.ifc_buf)
         free(ifc.ifc_buf);
