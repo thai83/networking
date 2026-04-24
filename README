@@ -13,7 +13,7 @@ The goal of this sample is to demonstrate systems-level networking fundamentals 
 network-operations awareness rather than provide production-ready code.
 
 ## What This Demonstrates
-- Understanding of Layer 2 and Layer 3 interactions (Ethernet, ARP, IPv4)
+- Knowledge of Layer 2 and Layer 3 interactions (Ethernet, ARP, IPv4)
 - Raw socket programming on Linux using `PF_PACKET`
 - Manual construction and parsing of Ethernet and ARP protocol headers
 - Network interface discovery, validation, and binding via `ioctl`
