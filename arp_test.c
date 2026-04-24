@@ -242,14 +242,12 @@ int main(int argc, char **argv)
     if (!flag)
     {
         printf("Could not find a suitable network interface, exit now...\n");
-        ret = 1; /* return error */
         goto cleanup;
     }
     /* Bind socket to this interface */
     if (bind(fd_arp, (struct sockaddr *)&sll, sizeof(sll)) == -1)
     {
         perror("Error binding raw socket to interface\n");
-        ret = 1; /* return error */
         goto cleanup;
     }
 
@@ -264,7 +262,6 @@ int main(int argc, char **argv)
 
     if (arpr.arp_flags & ATF_COM)
     {
-
         printf("Lookup Complete...\n"); /* Entry already exist in ARP table, just take the MAC address from arpr.arp_ha.sa_data[] */
 
         for (index = 0; index < MAC_ADDR_LEN; index++)
@@ -275,6 +272,7 @@ int main(int argc, char **argv)
         goto cleanup;
     }
 
+    printf("MAC address not found in ARP table, sending out ARP request...\n");
     ether_header = (etherHeader *)send_buf;
     memcpy(ether_header->dest_addr, dest_intfaddr.mac_addr, 6);
     memcpy(ether_header->src_addr, src_intfaddr.mac_addr, 6);
@@ -362,7 +360,7 @@ int main(int argc, char **argv)
     printf("\n\n");
 
     ret = 0; /* return success */
-    
+
 cleanup:
     if (ifc.ifc_buf)
         free(ifc.ifc_buf);
