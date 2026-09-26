@@ -26,9 +26,3 @@ Diagnostic output is intentionally included to make protocol behavior, packet st
 and state transitions explicit and easy to follow during review.
 
 The code requires elevated privileges (`root` or appropriate capabilities) due to raw socket usage.
-
-## Relevance to Network-Aware Systems
-The concepts demonstrated here support building reliable services and APIs
-that operate predictably across complex, heterogeneous, and potentially high-latency networks.
-This foundational understanding is directly applicable when designing interfaces that
-must integrate cleanly with underlying network and infrastructure layers.
