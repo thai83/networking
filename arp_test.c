@@ -339,7 +339,7 @@ int main(int argc, char **argv)
     arpHeader *arp_hdr = (arpHeader *)(recv_buf + sizeof(etherHeader));
     memcpy(arpr.arp_ha.sa_data, arp_hdr->sha, MAC_ADDR_LEN); /* Copy mac address. */
     arpr.arp_pa.sa_family = AF_INET;
-    arpr.arp_flags = ATF_PUBL;                                                      /* ATF_PUBL Flag is used to insert the entry into the ARP table. */
+    arpr.arp_flags = ATF_COM;                                                      /* ATF_COM Flag is used to insert the entry into the ARP table. */
     memcpy(arpr.arp_dev, src_intfaddr.intfc_name, sizeof(src_intfaddr.intfc_name)); /* Copy interface name. */
 
     if (ioctl(fd, SIOCSARP, &arpr) == -1) /* Add to MAC table */
@@ -348,7 +348,7 @@ int main(int argc, char **argv)
     }
 
     /* Print out some information useful for debugging. */
-    if (arpr.arp_flags & ATF_PUBL)
+    if (arpr.arp_flags & ATF_COM)
         printf("\nPublish Entry...\n");
     for (index = 2; index < MAC_ADDR_LEN; index++)
         printf("%d ", (unsigned char)arpr.arp_pa.sa_data[index]);
