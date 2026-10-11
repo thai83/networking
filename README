@@ -1,28 +1,119 @@
-# C Networking Work Sample – ARP Test Utility
+# Local Network ARP Scanner
 
-**Author:** Thai Nguyen  
-**Language:** C  
-**Platform:** Linux
+A low-level Linux networking project that demonstrates manual Ethernet and ARP packet construction, raw socket communication, and direct interaction with the kernel ARP table. This project is designed to highlight practical experience with Layer 2 networking, packet crafting, and system-level networking internals in Linux environments such as WSL2.
 
-## Purpose
-This repository contains a Linux-based C networking utility that resolves MAC addresses for a given IPv4 address.
-The program first queries the operating system ARP cache and, if no entry is present,
-constructs and transmits an ARP request using raw Ethernet frames.
+This scanner performs the following:
+- enumerates active network interfaces
+- checks the system ARP cache
+- sends an ARP request to a target host
+- parses the ARP reply
+- inserts the discovered MAC/IP mapping into the kernel neighbor table
 
-The goal of this sample is to demonstrate systems-level networking fundamentals and
-network-operations awareness rather than provide production-ready code.
+It is intended to showcase hands-on experience with networking fundamentals and low-level Linux system programming.
 
-## What This Demonstrates
-- Knowledge of Layer 2 and Layer 3 interactions (Ethernet, ARP, IPv4)
-- Raw socket programming on Linux using `PF_PACKET`
-- Manual construction and parsing of Ethernet and ARP protocol headers
-- Network interface discovery, validation, and binding via `ioctl`
-- Interaction with OS-level networking state (ARP cache query and insertion)
-- Practical networking knowledge relevant to distributed and mission-critical systems
+## Skills Demonstrated
 
-## Context
-This code is provided as a technical demonstration artifact.
-Diagnostic output is intentionally included to make protocol behavior, packet structure,
-and state transitions explicit and easy to follow during review.
+- Linux raw socket programming
+- Ethernet and ARP frame construction
+- Layer 2 networking
+- Network interface discovery and filtering
+- Kernel ARP cache manipulation with `ioctl`
+- WSL2 networking and debugging
+- Low-level protocol analysis
 
-The code requires elevated privileges (`root` or appropriate capabilities) due to raw socket usage.
+## Features
+
+- Dynamic interface discovery: scans active interfaces and ignores loopback or inactive adapters
+- Low-level packet crafting: builds Ethernet and ARP frames byte-by-byte
+- ARP cache inspection: checks the system ARP table before sending a request
+- Kernel integration: populates discovered entries into the Linux neighbor table
+- Timeout handling: gracefully handles missing or delayed replies
+- WSL2 compatibility: optimized for mirrored networking mode on Windows 11
+
+## Requirements
+
+- Linux environment
+- Root privileges or the capabilities:
+  - `CAP_NET_RAW`
+  - `CAP_NET_ADMIN`
+- WSL2 on Windows 11 (recommended) with mirrored networking enabled
+
+## Setup
+
+Traditional VM networking often uses NAT, which blocks Layer 2 traffic such as ARP from reaching the physical router. To run this project on Windows 11 with WSL2, enable Mirrored Networking Mode so the Ubuntu environment can access the host's physical adapters.
+
+### 1. Enable WSL2 mirrored mode
+
+Create or edit `.wslconfig` in your Windows user profile directory:
+
+```ini
+[wsl2]
+networkingMode=mirrored
+```
+
+Then restart WSL:
+
+```powershell
+wsl --shutdown
+```
+
+### 2. Allow raw packet traffic through the Windows firewall
+
+Run this in an elevated Windows PowerShell session:
+
+```powershell
+Set-NetFirewallHyperVVMSetting -Name '{40E0AC32-46A5-438A-A0B2-2B479E8F2E90}' -DefaultInboundAction Allow
+```
+
+## Build
+
+Compile the project with GCC:
+
+```bash
+gcc -O2 arp_test.c -o arp_test
+```
+
+## Grant Required Capabilities
+
+Instead of running the binary as root, grant only the minimum privileges needed:
+
+```bash
+sudo setcap 'cap_net_raw,cap_net_admin+ep' ./arp_test
+```
+
+## Usage
+
+Run the scanner against a live device on your local network:
+
+```bash
+./arp_test 192.168.1.254
+```
+
+Optionally, specify a network interface:
+
+```bash
+./arp_test 192.168.1.254 eth1
+```
+
+## Technical Notes
+
+- MAC randomization detection: when testing against devices like modern iPhones, the second character of a MAC address may indicate address randomization behavior.
+- ARP cache inspection: you can inspect the current kernel neighbor table with:
+
+```bash
+cat /proc/net/arp
+```
+
+- To force a fresh ARP lookup for a target, remove its entry from the cache:
+
+```bash
+sudo ip neigh del <TARGET_IP> dev <INTERFACE_NAME>
+```
+
+## Why This Project Matters
+
+This project reflects practical experience with low-level networking concepts and demonstrates the ability to work directly with protocol headers, interface discovery, and kernel networking internals. It is especially relevant for roles involving systems programming, network engineering, cybersecurity, or Linux infrastructure.
+
+## License
+
+This project is provided for educational and research purposes only.
