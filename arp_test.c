@@ -131,8 +131,9 @@ void decodeArpReply(unsigned char *msg)
 int main(int argc, char **argv)
 {
 
-    unsigned int *temp;
-    int fd, fd_arp, array_size;
+    int fd = -1;
+    int fd_arp = -1;
+    int array_size;
     int index, retval, flag = 0;
     struct sockaddr_ll sll;
     struct ifreq ifr;
@@ -185,10 +186,15 @@ int main(int argc, char **argv)
     */
     ifc.ifc_len = NUM_OF_INTFC * sizeof(struct ifreq);
     ifc.ifc_buf = (char *)malloc(ifc.ifc_len);
+    if (ifc.ifc_buf == NULL)
+    {
+        perror("Error allocating interface configuration buffer");
+        goto cleanup;
+    }
 
     /* Call SIOCGIFCONF ioctl */
     if (ioctl(fd_arp, SIOCGIFCONF, &ifc) == -1)
-        return -1;
+        goto cleanup;
 
     array_size = ifc.ifc_len / sizeof(struct ifreq);
 
@@ -204,7 +210,7 @@ int main(int argc, char **argv)
         memcpy(src_intfaddr.ip_addr, ifr.ifr_addr.sa_data + 2, IP_ADDR_LEN); /* Get IP address of this interface. */
 
         if (ioctl(fd_arp, SIOCGIFFLAGS, &ifr) == -1)
-            return -1; /* Get device interface flags. */
+            goto cleanup; /* Get device interface flags. */
         if (ifr.ifr_flags & IFF_LOOPBACK)
             continue; /* Ignore loopback interface. */
         if (!(ifr.ifr_flags & (IFF_RUNNING | IFF_UP | IFF_DYNAMIC)))
@@ -217,7 +223,7 @@ int main(int argc, char **argv)
             continue;
 
         if (ioctl(fd_arp, SIOCGIFHWADDR, &ifr) == -1)
-            return -1; /* Get hardware information of this interface. */
+            goto cleanup; /* Get hardware information of this interface. */
 
         memcpy(src_intfaddr.mac_addr, ifr.ifr_addr.sa_data, MAC_ADDR_LEN);   /* Get MAC address of this interface. */
         memcpy(src_intfaddr.intfc_name, ifr.ifr_name, sizeof(ifr.ifr_name)); /* Get interface's name, e.g, wlan0, eth0... */
@@ -252,6 +258,11 @@ int main(int argc, char **argv)
     }
 
     fd = socket(PF_INET, SOCK_STREAM, 0); /* Open a pf_inet socket to work with the ARP table. */
+    if (fd == -1)
+    {
+        perror("Error opening ARP table socket");
+        goto cleanup;
+    }
 
     memset(&arpr, 0, sizeof(arpr));
     memcpy(arpr.arp_pa.sa_data + 2, dest_ip, IP_ADDR_LEN);
@@ -329,8 +340,8 @@ int main(int argc, char **argv)
 
     decodeArpReply(recv_buf);
 
-    for (index = 0; index < sizeof(recv_buf); index++)
-        printf("%0x", recv_buf[index]);
+    for (size_t packet_index = 0; packet_index < sizeof(recv_buf); packet_index++)
+        printf("%0x", recv_buf[packet_index]);
 
     /* Attempt to add the new found MAC address to the ARP cache. */
 
